@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class BridgeLine : MonoBehaviour
 {
-    [Header("壁判定の余裕")]
-    public float extraWidth = 0.1f;
+    [Header("橋の判定の余裕")]
+    public float extraWidth = 0.5f;
 
     private LineRenderer lineRenderer;
 
@@ -13,7 +13,7 @@ public class BridgeLine : MonoBehaviour
     }
 
     // ========================================
-    // プレイヤーが線の上にいるか
+    // プレイヤーが橋の上にいるか判定
     // ========================================
     public bool IsPointOnBridge(Vector2 point)
     {
@@ -27,13 +27,18 @@ public class BridgeLine : MonoBehaviour
             return false;
         }
 
+        // 線の太さ
         float lineWidth =
             (lineRenderer.startWidth +
              lineRenderer.endWidth) * 0.5f;
 
+        // 判定範囲を広めにする
         float judgeWidth =
-            (lineWidth * 0.5f) + extraWidth;
+            (lineWidth * 0.5f)
+            + extraWidth
+            + 0.2f;
 
+        // 線の各区間をチェック
         for (int i = 0;
              i < lineRenderer.positionCount - 1;
              i++)
@@ -61,7 +66,8 @@ public class BridgeLine : MonoBehaviour
     }
 
     // ========================================
-    // プレイヤーから線までの距離
+    // 線からプレイヤーまでの距離
+    // 風の壁判定でも使用
     // ========================================
     public float GetDistanceToLine(Vector2 point)
     {
@@ -105,7 +111,7 @@ public class BridgeLine : MonoBehaviour
     }
 
     // ========================================
-    // 線分との距離を計算
+    // 線分と点の距離を計算
     // ========================================
     private float DistanceToLineSegment(
         Vector2 point,
@@ -118,7 +124,7 @@ public class BridgeLine : MonoBehaviour
         float lengthSquared =
             line.sqrMagnitude;
 
-        // 始点と終点が同じ場合
+        // 線の長さが0の場合
         if (lengthSquared == 0f)
         {
             return Vector2.Distance(
@@ -127,12 +133,14 @@ public class BridgeLine : MonoBehaviour
             );
         }
 
+        // 点が線分のどこに一番近いか
         float t =
             Vector2.Dot(
                 point - start,
                 line
             ) / lengthSquared;
 
+        // 線分の範囲内に限定
         t = Mathf.Clamp01(t);
 
         Vector2 closestPoint =

@@ -4,5 +4,27 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/Title.unity
+    guid: a7ab255600ec3b44699776d7126a5e28
+  - enabled: 1
+    path: Assets/Scenes/Home.unity
+    guid: 8ec993f8a9750bf44bb2b511574c3057
+  - enabled: 1
+    path: Assets/Scenes/StageSelect.unity
+    guid: 13922fac820a65d45ab30bffa937177b
+  - enabled: 1
+    path: Assets/Scenes/Tutorial.unity
+    guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/Switch.unity
+    guid: 52e61cb70bc14dc4e85c12405de71c90
+  - enabled: 1
+    path: Assets/Scenes/Wind.unity
+    guid: a0c4fa93e4d3de542b68e6d9319745af
+  - enabled: 1
+    path: Assets/Scenes/Laser.unity
+    guid: b2fedc3285fa5874588a371b21f9019e
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0

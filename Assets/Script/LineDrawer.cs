@@ -29,20 +29,35 @@ public class LineDrawer : MonoBehaviour
     // 2 = 太い
     private int currentThickness = 1;
 
-    // 今描いている線の使用インク
     private float currentLineInk = 0f;
 
-    // 完成した線
     private List<LineData> lines =
         new List<LineData>();
+
+
+    // ==================================================
+    // 線のデータ
+    // ==================================================
 
     private class LineData
     {
         public GameObject gameObject;
         public LineRenderer lineRenderer;
+
+        // 橋用
+        public BridgeLine bridgeLine;
+
+        // レーザー遮断用
+        public LaserBlocker laserBlocker;
+
+        // 使用したインク
         public float usedInk;
     }
 
+
+    // ==================================================
+    // Start
+    // ==================================================
 
     private void Start()
     {
@@ -50,15 +65,19 @@ public class LineDrawer : MonoBehaviour
     }
 
 
+    // ==================================================
+    // Update
+    // ==================================================
+
     private void Update()
     {
-        // =====================================
-        // チュートリアル中
-        // =====================================
+        // =========================
+        // チュートリアル中の制御
+        // =========================
 
         if (TutorialManager.IsTutorialActive)
         {
-            // Step 2「線を描こう！」だけ描画可能
+            // 線を描けるのはStep 2
             if (TutorialManager.CurrentStep != 2)
             {
                 if (currentLine != null)
@@ -69,7 +88,6 @@ public class LineDrawer : MonoBehaviour
                 return;
             }
 
-            // Step 2でも「次へ」を押すまでは描画不可
             if (!TutorialManager.IsOperationStarted)
             {
                 if (currentLine != null)
@@ -82,9 +100,9 @@ public class LineDrawer : MonoBehaviour
         }
 
 
-        // =====================================
+        // =========================
         // 線の太さ変更
-        // =====================================
+        // =========================
 
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
@@ -108,9 +126,9 @@ public class LineDrawer : MonoBehaviour
         }
 
 
-        // =====================================
-        // 右クリックで線を消す
-        // =====================================
+        // =========================
+        // 右クリック → 線を削除
+        // =========================
 
         if (Input.GetMouseButtonDown(1))
         {
@@ -120,29 +138,19 @@ public class LineDrawer : MonoBehaviour
         }
 
 
-        // =====================================
-        // 左クリックで描画開始
-        // =====================================
+        // =========================
+        // 左クリック → 線を描く
+        // =========================
 
         if (Input.GetMouseButtonDown(0))
         {
             StartDrawing();
         }
 
-
-        // =====================================
-        // 左クリック中
-        // =====================================
-
         if (Input.GetMouseButton(0))
         {
             ContinueDrawing();
         }
-
-
-        // =====================================
-        // 左クリックを離す
-        // =====================================
 
         if (Input.GetMouseButtonUp(0))
         {
@@ -151,9 +159,9 @@ public class LineDrawer : MonoBehaviour
     }
 
 
-    // =====================================
-    // 描画開始
-    // =====================================
+    // ==================================================
+    // 線を描き始める
+    // ==================================================
 
     private void StartDrawing()
     {
@@ -179,11 +187,17 @@ public class LineDrawer : MonoBehaviour
 
         currentLineInk = 0f;
 
+
+        // =========================
+        // Line Prefabを生成
+        // =========================
+
         GameObject newLine =
             Instantiate(linePrefab);
 
         currentLine =
             newLine.GetComponent<LineRenderer>();
+
 
         if (currentLine == null)
         {
@@ -196,6 +210,11 @@ public class LineDrawer : MonoBehaviour
             return;
         }
 
+
+        // =========================
+        // 現在の太さを設定
+        // =========================
+
         float width =
             GetCurrentWidth();
 
@@ -205,27 +224,34 @@ public class LineDrawer : MonoBehaviour
         currentLine.endWidth =
             width;
 
+
+        // =========================
+        // マウス位置取得
+        // =========================
+
         Vector2 mousePosition =
             GetMouseWorldPosition();
 
         points.Add(mousePosition);
 
-        currentLine.positionCount = 1;
+
+        currentLine.positionCount =
+            1;
 
         currentLine.SetPosition(
             0,
             new Vector3(
                 mousePosition.x,
                 mousePosition.y,
-                0
+                0f
             )
         );
     }
 
 
-    // =====================================
-    // 描画中
-    // =====================================
+    // ==================================================
+    // 線を描いている途中
+    // ==================================================
 
     private void ContinueDrawing()
     {
@@ -239,11 +265,17 @@ public class LineDrawer : MonoBehaviour
             return;
         }
 
+
+        // =========================
+        // マウス位置
+        // =========================
+
         Vector2 mousePosition =
             GetMouseWorldPosition();
 
         Vector2 lastPosition =
             points[points.Count - 1];
+
 
         float distance =
             Vector2.Distance(
@@ -251,50 +283,76 @@ public class LineDrawer : MonoBehaviour
                 mousePosition
             );
 
-        if (distance >= minDistance)
+
+        // =========================
+        // 近すぎる場合は追加しない
+        // =========================
+
+        if (distance < minDistance)
         {
-            float multiplier =
-                GetInkMultiplier();
-
-            float inkCost =
-                distance * multiplier;
-
-            if (!InkManager.Instance.UseInk(inkCost))
-            {
-                Debug.Log(
-                    "インクが足りません！"
-                );
-
-                FinishDrawing();
-
-                return;
-            }
-
-            currentLineInk +=
-                inkCost;
-
-            points.Add(
-                mousePosition
-            );
-
-            currentLine.positionCount =
-                points.Count;
-
-            currentLine.SetPosition(
-                points.Count - 1,
-                new Vector3(
-                    mousePosition.x,
-                    mousePosition.y,
-                    0
-                )
-            );
+            return;
         }
+
+
+        // =========================
+        // 太さによるインク倍率
+        // =========================
+
+        float multiplier =
+            GetInkMultiplier();
+
+
+        float inkCost =
+            distance * multiplier;
+
+
+        // =========================
+        // インク不足
+        // =========================
+
+        if (!InkManager.Instance.UseInk(inkCost))
+        {
+            Debug.Log(
+                "インクが足りません！"
+            );
+
+            FinishDrawing();
+
+            return;
+        }
+
+
+        currentLineInk +=
+            inkCost;
+
+
+        // =========================
+        // 点を追加
+        // =========================
+
+        points.Add(
+            mousePosition
+        );
+
+
+        currentLine.positionCount =
+            points.Count;
+
+
+        currentLine.SetPosition(
+            points.Count - 1,
+            new Vector3(
+                mousePosition.x,
+                mousePosition.y,
+                0f
+            )
+        );
     }
 
 
-    // =====================================
-    // 描画終了
-    // =====================================
+    // ==================================================
+    // 線を描き終わる
+    // ==================================================
 
     private void FinishDrawing()
     {
@@ -303,7 +361,11 @@ public class LineDrawer : MonoBehaviour
             return;
         }
 
-        // 点が2つ未満なら線として扱わない
+
+        // =========================
+        // 2点未満なら線として確定しない
+        // =========================
+
         if (points.Count < 2)
         {
             Destroy(
@@ -319,28 +381,114 @@ public class LineDrawer : MonoBehaviour
             return;
         }
 
+
+        // ==================================================
+        // LineData作成
+        // ==================================================
+
         LineData data =
             new LineData();
+
 
         data.gameObject =
             currentLine.gameObject;
 
+
         data.lineRenderer =
             currentLine;
+
 
         data.usedInk =
             currentLineInk;
 
+
+        // ==================================================
+        // BridgeLine取得
+        // ==================================================
+
+        data.bridgeLine =
+            currentLine.GetComponent<BridgeLine>();
+
+
+        // ==================================================
+        // LaserBlocker取得
+        // ==================================================
+
+        data.laserBlocker =
+            currentLine.GetComponent<LaserBlocker>();
+
+
+        // ==================================================
+        // Edge Collider 2Dを更新
+        // ==================================================
+
+        if (data.laserBlocker != null)
+        {
+            data.laserBlocker.UpdateCollider();
+
+            Debug.Log(
+                "LaserBlockerのColliderを更新しました！"
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Line PrefabにLaserBlockerがありません！"
+            );
+        }
+
+
+        // ==================================================
+        // 線をリストに登録
+        // ==================================================
+
         lines.Add(data);
+
+
+        // ==================================================
+        // BridgeManagerに登録
+        // ==================================================
+
+        if (data.bridgeLine != null)
+        {
+            if (BridgeManager.Instance != null)
+            {
+                BridgeManager.Instance.RegisterBridge(
+                    data.bridgeLine
+                );
+
+                Debug.Log(
+                    "線を橋として登録しました！"
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "BridgeManagerが見つかりません！"
+                );
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Line PrefabにBridgeLineがありません！"
+            );
+        }
+
+
+        // ==================================================
+        // デバッグ
+        // ==================================================
 
         Debug.Log(
             "線を作成しました。使用インク: "
             + currentLineInk
         );
 
-        // =================================
-        // チュートリアル Step 2
-        // =================================
+
+        // ==================================================
+        // チュートリアル
+        // ==================================================
 
         if (TutorialManager.IsTutorialActive &&
             TutorialManager.CurrentStep == 2)
@@ -352,6 +500,11 @@ public class LineDrawer : MonoBehaviour
             TutorialManager.Instance.OnLineDrawn();
         }
 
+
+        // ==================================================
+        // リセット
+        // ==================================================
+
         currentLine = null;
 
         points.Clear();
@@ -360,9 +513,9 @@ public class LineDrawer : MonoBehaviour
     }
 
 
-    // =====================================
-    // 描きかけの線をキャンセル
-    // =====================================
+    // ==================================================
+    // 描いている途中の線をキャンセル
+    // ==================================================
 
     private void CancelCurrentDrawing()
     {
@@ -371,11 +524,16 @@ public class LineDrawer : MonoBehaviour
             return;
         }
 
+
         Destroy(
             currentLine.gameObject
         );
 
-        // 描きかけで使用したインクを全額返す
+
+        // =========================
+        // 使用したインクを全額返す
+        // =========================
+
         if (currentLineInk > 0f &&
             InkManager.Instance != null)
         {
@@ -383,6 +541,7 @@ public class LineDrawer : MonoBehaviour
                 currentLineInk
             );
         }
+
 
         currentLine = null;
 
@@ -392,9 +551,9 @@ public class LineDrawer : MonoBehaviour
     }
 
 
-    // =====================================
+    // ==================================================
     // 線を削除
-    // =====================================
+    // ==================================================
 
     private void DeleteLine()
     {
@@ -403,27 +562,41 @@ public class LineDrawer : MonoBehaviour
             return;
         }
 
+
         Vector2 mousePosition =
             GetMouseWorldPosition();
 
+
         LineData closestLine = null;
+
 
         float closestDistance =
             deleteDistance;
 
+
+        // =========================
+        // 一番近い線を探す
+        // =========================
+
         foreach (LineData line in lines)
         {
-            if (line == null ||
-                line.lineRenderer == null)
+            if (line == null)
             {
                 continue;
             }
+
+            if (line.lineRenderer == null)
+            {
+                continue;
+            }
+
 
             float distance =
                 DistanceToLine(
                     mousePosition,
                     line.lineRenderer
                 );
+
 
             if (distance < closestDistance)
             {
@@ -435,14 +608,20 @@ public class LineDrawer : MonoBehaviour
             }
         }
 
+
         if (closestLine == null)
         {
             return;
         }
 
-        // 80%返却
+
+        // ==================================================
+        // インク80%返却
+        // ==================================================
+
         float refund =
             closestLine.usedInk * 0.8f;
+
 
         if (InkManager.Instance != null)
         {
@@ -451,14 +630,48 @@ public class LineDrawer : MonoBehaviour
             );
         }
 
+
         Debug.Log(
             "線を削除しました。返却インク: "
             + refund
         );
 
+
+        // ==================================================
+        // BridgeManagerから削除
+        // ==================================================
+
+        if (closestLine.bridgeLine != null)
+        {
+            if (BridgeManager.Instance != null)
+            {
+                BridgeManager.Instance.UnregisterBridge(
+                    closestLine.bridgeLine
+                );
+            }
+        }
+
+
+        // ==================================================
+        // LaserBlockerは線のGameObjectと一緒に削除される
+        // ==================================================
+
+        if (closestLine.laserBlocker != null)
+        {
+            Debug.Log(
+                "LaserBlockerを削除しました！"
+            );
+        }
+
+
+        // ==================================================
+        // GameObject削除
+        // ==================================================
+
         Destroy(
             closestLine.gameObject
         );
+
 
         lines.Remove(
             closestLine
@@ -466,9 +679,9 @@ public class LineDrawer : MonoBehaviour
     }
 
 
-    // =====================================
+    // ==================================================
     // 線までの距離
-    // =====================================
+    // ==================================================
 
     private float DistanceToLine(
         Vector2 point,
@@ -477,17 +690,18 @@ public class LineDrawer : MonoBehaviour
         float closestDistance =
             float.MaxValue;
 
+
         for (
             int i = 0;
             i < line.positionCount - 1;
-            i++
-        )
+            i++)
         {
             Vector2 start =
                 line.GetPosition(i);
 
             Vector2 end =
                 line.GetPosition(i + 1);
+
 
             float distance =
                 DistanceToLineSegment(
@@ -496,6 +710,7 @@ public class LineDrawer : MonoBehaviour
                     end
                 );
 
+
             if (distance < closestDistance)
             {
                 closestDistance =
@@ -503,13 +718,14 @@ public class LineDrawer : MonoBehaviour
             }
         }
 
+
         return closestDistance;
     }
 
 
-    // =====================================
-    // 線分までの距離
-    // =====================================
+    // ==================================================
+    // 線の1区間までの距離
+    // ==================================================
 
     private float DistanceToLineSegment(
         Vector2 point,
@@ -519,10 +735,12 @@ public class LineDrawer : MonoBehaviour
         Vector2 line =
             end - start;
 
+
         float lengthSquared =
             line.sqrMagnitude;
 
-        if (lengthSquared == 0)
+
+        if (lengthSquared == 0f)
         {
             return Vector2.Distance(
                 point,
@@ -530,17 +748,21 @@ public class LineDrawer : MonoBehaviour
             );
         }
 
+
         float t =
             Vector2.Dot(
                 point - start,
                 line
             ) / lengthSquared;
 
+
         t =
             Mathf.Clamp01(t);
 
+
         Vector2 closestPoint =
             start + line * t;
+
 
         return Vector2.Distance(
             point,
@@ -549,9 +771,9 @@ public class LineDrawer : MonoBehaviour
     }
 
 
-    // =====================================
+    // ==================================================
     // 現在の線の太さ
-    // =====================================
+    // ==================================================
 
     private float GetCurrentWidth()
     {
@@ -567,13 +789,14 @@ public class LineDrawer : MonoBehaviour
                 return thickWidth;
         }
 
+
         return normalWidth;
     }
 
 
-    // =====================================
+    // ==================================================
     // インク消費倍率
-    // =====================================
+    // ==================================================
 
     private float GetInkMultiplier()
     {
@@ -589,13 +812,14 @@ public class LineDrawer : MonoBehaviour
                 return 3f;
         }
 
+
         return 2f;
     }
 
 
-    // =====================================
+    // ==================================================
     // マウスのワールド座標
-    // =====================================
+    // ==================================================
 
     private Vector2 GetMouseWorldPosition()
     {
@@ -605,13 +829,16 @@ public class LineDrawer : MonoBehaviour
                 Camera.main;
         }
 
+
         Vector3 mousePosition =
             Input.mousePosition;
+
 
         Vector3 worldPosition =
             mainCamera.ScreenToWorldPoint(
                 mousePosition
             );
+
 
         return new Vector2(
             worldPosition.x,

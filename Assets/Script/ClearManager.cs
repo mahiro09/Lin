@@ -7,17 +7,16 @@ public class ClearManager : MonoBehaviour
 {
     public static ClearManager Instance;
 
-    [Header("CLEAR UI")]
+    [Header("クリアUI")]
     public GameObject clearPanel;
-
-    [Header("CLEARテキスト")]
     public RectTransform clearText;
-
-    [Header("インク結果")]
     public TextMeshProUGUI inkResultText;
 
-    [Header("演出時間")]
+    [Header("アニメーション")]
     public float animationTime = 0.4f;
+
+    [Header("ステージセレクト")]
+    public string stageSelectSceneName = "StageSelect";
 
     private bool isCleared = false;
 
@@ -36,10 +35,6 @@ public class ClearManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
-    // =========================
-    // CLEAR
-    // =========================
-
     public void Clear()
     {
         if (isCleared)
@@ -51,10 +46,7 @@ public class ClearManager : MonoBehaviour
 
         Debug.Log("ステージCLEAR!");
 
-        // -------------------------
-        // 使用インクを取得
-        // -------------------------
-
+        // 使用インク表示
         if (InkManager.Instance != null &&
             inkResultText != null)
         {
@@ -66,40 +58,22 @@ public class ClearManager : MonoBehaviour
                 Mathf.CeilToInt(usedInk);
         }
 
-        // -------------------------
-        // CLEARパネル表示
-        // -------------------------
-
+        // クリア画面表示
         if (clearPanel != null)
         {
             clearPanel.SetActive(true);
         }
 
-        // -------------------------
-        // CLEAR文字を小さくする
-        // -------------------------
-
+        // CLEAR文字を小さくしてアニメーション開始
         if (clearText != null)
         {
             clearText.localScale = Vector3.zero;
         }
 
-        // -------------------------
-        // CLEAR演出開始
-        // -------------------------
-
         StartCoroutine(ClearAnimation());
-
-        // -------------------------
-        // ゲーム停止
-        // -------------------------
 
         Time.timeScale = 0f;
     }
-
-    // =========================
-    // CLEAR演出
-    // =========================
 
     private IEnumerator ClearAnimation()
     {
@@ -107,10 +81,6 @@ public class ClearManager : MonoBehaviour
         {
             yield break;
         }
-
-        // -------------------------
-        // 0 → 1.2
-        // -------------------------
 
         float timer = 0f;
 
@@ -122,11 +92,7 @@ public class ClearManager : MonoBehaviour
                 timer / animationTime;
 
             float scale =
-                Mathf.Lerp(
-                    0f,
-                    1.2f,
-                    t
-                );
+                Mathf.Lerp(0f, 1.2f, t);
 
             clearText.localScale =
                 new Vector3(
@@ -137,10 +103,6 @@ public class ClearManager : MonoBehaviour
 
             yield return null;
         }
-
-        // -------------------------
-        // 1.2 → 1.0
-        // -------------------------
 
         timer = 0f;
 
@@ -173,21 +135,56 @@ public class ClearManager : MonoBehaviour
     }
 
     // =========================
-    // 次のステージ
+    // NEXT STAGE
     // =========================
 
     public void NextStage()
     {
         Time.timeScale = 1f;
 
-        int nextScene =
-            SceneManager.GetActiveScene().buildIndex + 1;
+        int currentScene =
+            SceneManager.GetActiveScene().buildIndex;
 
-        SceneManager.LoadScene(nextScene);
+        int nextScene =
+            currentScene + 1;
+
+        Debug.Log(
+            "次のステージへ：Build Index "
+            + nextScene
+        );
+
+        if (nextScene <
+            SceneManager.sceneCountInBuildSettings)
+        {
+            SceneManager.LoadScene(nextScene);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "次のステージがありません。"
+            );
+        }
     }
 
     // =========================
-    // リトライ
+    // STAGE SELECT
+    // =========================
+
+    public void StageSelect()
+    {
+        Time.timeScale = 1f;
+
+        Debug.Log(
+            "ステージセレクトへ移動"
+        );
+
+        SceneManager.LoadScene(
+            stageSelectSceneName
+        );
+    }
+
+    // =========================
+    // RETRY
     // =========================
 
     public void Retry()
